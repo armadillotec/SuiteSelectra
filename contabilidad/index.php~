@@ -1,0 +1,469 @@
+<?
+if (!isset($_SESSION))
+{
+    session_start();
+
+
+}
+include("../general.config.inc.php") ;
+?>
+<html>
+<head>
+<title>.:  SELECTRA CONTABILIDAD :.</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--<script src="libs/jquery/jqueryinicio.js"></script> -->
+<link href="estilos.css" rel="stylesheet" type="text/css" />
+
+ <script src="libs/js/ajax.js"></script>
+
+</head>
+<body class="fondo">
+
+<style>
+
+input
+{
+width:200px;
+
+}
+
+input.inc{
+
+    background: #FDA08F ;
+
+     border-color: #E91D18;
+
+ }
+
+ input.corr{
+
+  background:#C6FFC6;
+
+  border-color: #33CC00;
+
+
+
+ }
+
+.procesando
+{
+
+
+width:401px;
+height: 400px;
+background:white;
+position:absolute;
+border:0.1px;
+border-style:solid;
+border-color:green;
+-moz-border-radius:10px;
+
+margin: auto 0 auto 0;
+
+
+
+}
+
+span.error           {
+	font-weight:normal;
+	text-align:left;
+	color: #C00;
+	width:140px;
+	padding-left:25px;
+	background-attachment: scroll;
+
+	background-image: none;
+	background-repeat: no-repeat;
+	background-position: left;
+}
+
+.columna1
+{
+
+background:white;
+opacity:0.7;
+-moz-border-radius:10px;
+margin-left:20px;
+padding-left:10px;
+
+}
+.titulo1
+{
+
+font-size:10px;
+font-family:arial;
+font-weight:bold;
+text-align:center;
+
+}
+
+#nuevaEmpresa td
+{
+
+color:black;
+font-size:10px;
+font-family:arial;
+text-transform:uppercase;
+
+}
+
+#nuevaEmpresa
+{
+background-color:#ecEdeF;
+position:absolute;
+top:10px;
+left:10px;
+width:320px;
+height:220px;
+padding:10px;
+font-size:10px;
+font-family:arial;
+border:0.1px;
+
+
+border-style:solid;
+border-color:green;
+-moz-border-radius:10px;
+
+
+
+}
+
+
+hr
+{
+
+color:white;
+
+}
+.contenedor
+{
+border:0.1px;
+
+width:401;
+border-style:solid;
+border-color:blue;
+-moz-border-radius:10px;
+height:390px
+
+}
+
+
+.seleccionEmpresa
+{
+width:390px;
+height:150px;
+-moz-border-radius:10px;
+}
+
+td,tr,body,img
+{
+background:none;
+}
+
+
+
+</style>
+
+
+
+<script>
+
+function mostrarBotonAgregar()
+{
+
+var boton = document.getElementById('boton1');
+
+if (document.bdcorrecta && document.empresacorrecta && document.bdcorrecta2 && document.bdcorrecta3)
+boton.style.visibility = 'visible';
+else
+boton.style.visibility = 'hidden';
+
+}
+
+
+
+
+
+
+
+
+function chk_NombreEmpresa(valor){
+
+if (valor.value != '')
+{
+
+var aux = 'validarEmpresa.php?nombreBD=' + valor.value;
+
+cargarUrl(aux ,'resultado1');
+
+}
+else
+
+{
+var aux = document.getElementById('resultado1');
+aux.innerHTML='';
+
+
+}
+
+mostrarBotonAgregar();
+
+}
+
+function agregarEmpresa()
+{
+
+if (confirm('Va a crear una nueva empresa. Continuar?'))
+{
+
+var boton = document.getElementById('boton1');  boton.style.visibility = 'hidden';
+
+var aux = document.getElementById('iframe_procesamiento');
+var formu = document.getElementById('formularioNuevaEmpresa');
+var procesando = document.getElementById('procesando');
+aux.src = 'agregar_empresa.php?nombre=' + formu.nombre.value + '&baseDatosAdm=' + formu.base_adm.value + '&baseDatosCon=' + formu.base_con.value + '&baseDatosNom=' + formu.base_nom.value ;
+formu.nombre.value= '';
+formu.base_adm.value = '';
+formu.base_con.value = '';
+formu.base_nom.value = '';
+ocultarAgregarEmpresa();
+mostrarProcesando();
+}
+
+}
+
+function chk_BaseDatos(valor){
+
+    if(valor.id== 'base_adm')
+    {
+        resultado = 'resultado2';
+    }else if(valor.id== 'base_con')
+    {
+        resultado = 'resultado3';
+    }else if(valor.id== 'base_nom')
+    {
+        resultado = 'resultado4';
+    }
+    if (valor.value != ''){
+        var aux = 'validarBaseDatos.php?nombreBD=' + valor.value + '&resul='+resultado;
+        cargarUrl(aux ,resultado);
+    }else{
+    var aux = document.getElementById(resultado);
+    aux.innerHTML='';
+    }
+    mostrarBotonAgregar();
+}
+
+
+function urldecode (str) {
+
+    return decodeURIComponent(str.replace(/\+/g, '%20'));
+}
+
+function mostrarAgregarEmpresa()
+{
+
+var aux = document.getElementById('nuevaEmpresa');
+aux.style.visibility='visible';
+
+}
+
+function ocultarAgregarEmpresa()
+{
+
+var aux = document.getElementById('nuevaEmpresa');
+aux.style.visibility='hidden';
+
+}
+
+function mostrarProcesando()
+{
+
+var aux = document.getElementById('procesando');
+aux.style.visibility='visible';
+
+}
+
+function ocultarProcesando()
+{
+
+var aux = document.getElementById('procesando');
+aux.style.visibility='hidden';
+
+}
+
+
+
+
+</script>
+
+<?php
+
+session_start();
+ob_start();
+
+include("../menu_sistemas/lib/common.php") ;
+
+$conexion=new bd(SELECTRA_CONF_PYMES);
+
+
+$empresas=new bd(SELECTRA_CONF_PYMES);
+$query ="select * from nomempresa ";
+
+$resultado= $empresas->query($query);
+
+
+
+$ejecutar=$_GET['ejecutar'];
+
+$baseDatos=$_GET['baseDatos'];
+
+
+
+
+
+if (isset($_GET['empresaSeleccionada']))
+{
+
+$_SESSION['EmpresaContabilidad']=$_GET['empresaSeleccionada'];
+
+}
+
+
+
+if (isset($_SESSION['EmpresaContabilidad']))
+
+{
+
+echo "<script> location = 'login.php'; </script>";
+header("Location: modulos/sesion/");
+exit;
+}
+else
+{
+
+
+
+
+echo '
+
+
+<br><br><br>
+<center>
+
+<div class="contenedor">
+<div class="procesando" id="procesando" style="visibility:hidden"> <br> <H1 style="color:green; font-family:arial; "> <br> Se Está Creando  <br> La Nueva Empresa </H1>  <img src="imagenes/Procesando.gif"/
+<br> <br> <br>
+Esta Operación <br> Puede Durar Algunos Minutos
+<br> <br>
+<img src="img_sis/asys.png" />
+</div>
+<img src="img_sis/selectra.jpg" width="401" height="140" />
+<hr>
+<DIV class="titulo1">SELECCIONE UNA EMPRESA PARA CONTINUAR </DIV><hr>
+<div id="listado">
+<form id="seleccionar_empresa" name="seleccionar_empresa" method="GET">
+<select class="seleccionEmpresa" multiple="multiple" name="empresaSeleccionada">
+
+
+';
+
+
+while ($fila = $resultado->fetch_assoc())
+{
+
+echo '<option value="'.$fila['bd_contabilidad'].'">'.$fila['nombre'].'</option>';
+
+}
+
+
+echo
+'
+</form>
+</select>
+</div>
+';
+
+?>
+
+<hr>
+<table width="100%" border="0">
+  <tbody>
+    <tr>
+      <td align="left" tyle='background:none;'><img src="img_sis/asys.png" /></td>
+<td align="right" width="15%"><?btn2(" Seleccionar ",'document.seleccionar_empresa.submit()','ok.gif')?></td>
+<td align="right" width="15%"><?btn2('Nueva','mostrarAgregarEmpresa();','add.gif')?></td>
+
+    </tr>
+  </tbody>
+</table>
+
+<?
+echo '
+</div>
+<br>
+<a target="_self" href="../entrada/index.php" ><img src="imagenes/back.gif" border="0" width="16" height="16" align="absmiddle"/>&nbsp;Ir a menu de Sistemas</a>
+</center>
+
+';
+
+
+
+}
+
+
+
+
+
+?>
+<div id='nuevaEmpresa' class='nuevaEmpresa' style='visibility:hidden'><DIV  onclick='ocultarAgregarEmpresa()' style='position:absolute; cursor:pointer; top:0px; right:0px; widht:240px'><img src='imagenes/cerrar.png'></div> <hr>
+<DIV class="titulo1" style='background:none;' >AGREGAR EMPRESA </DIV> <hr>
+<form id='formularioNuevaEmpresa'>
+<table>
+<tr> <td width='100px' class='columna1' >Nombre de la Empresa<td>
+<td><input type="text"   id='nombre'  name='nombre'
+onchange="chk_NombreEmpresa(this);" > <div id='resultado1'
+style='position:absolute' ></div> <span id='nombre_error' class='error' name='nombre_error'></span>  </td></tr>
+<tr> <td class='columna1'>Nombre de Base de Datos Administrativo: <td> <td> <input
+type="text" id='base_adm' name='base_adm' onchange="chk_BaseDatos(this);">
+<div
+id='resultado2' style='position:absolute' ></div> </td> <span id='base_error' class='error' name='base_error'> </span>
+<?if (file_exists($_SESSION['ROOT_PROYECTO'] . "/contabilidad")){?>
+<tr> <td class='columna1'>Nombre de Base de Datos Contabilidad: <td> <td> <input
+type="text" id='base_con' name='base_con' onchange="chk_BaseDatos(this);">
+<?}?>
+<div
+id='resultado3' style='position:absolute' ></div> </td> <span id='base_error' class='error' name='base_error'> </span>
+<?if (file_exists($_SESSION['ROOT_PROYECTO'] . "/nomina")){?>
+<tr> <td class='columna1'>Nombre de Base de Datos Nomina: <td> <td> <input
+type="text" id='base_nom' name='base_nom' onchange="chk_BaseDatos(this);">
+<?}?>
+<div
+id='resultado4' style='position:absolute' ></div> </td> <span id='base_error' class='error3' name='base_error'> </span>     </tr>
+
+
+
+</table>
+
+    <center>
+<br>
+
+ <div id='boton1' style='visibility:hidden'>
+<?btn2('Agregar','agregarEmpresa();','add.gif')?>
+ </div>
+   <br> <br>
+        </center>
+</form>
+
+</div>
+
+
+<iframe id='iframe_procesamiento' style='visibility:hidden;' >
+
+</iframe>
+
+
+
+</body>
+</html>
